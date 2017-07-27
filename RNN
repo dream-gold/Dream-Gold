@@ -1,0 +1,61 @@
+import numpy as np
+form cnn import ReluActivator, IdentityActivator, element_wise_op
+
+class RecurrentLayer(object):
+    def_init_(self, input_width, state_width, activator, learning_rate):
+        self.input_width=input_width
+        self.state_width=state_width
+        self.activator=activator
+        self.learning_rate=learning_rate
+        self.times=0   #初始化，令当前时刻为t0
+        self.state_list=[]
+        self.state_list.append(np.zeros(state_width,1))  #初始化s0
+        #初始化权重系数w和u
+        self.U=np.random.uniform(-1e-4,1e-4,(state_width,input_width))
+        self.W=np.random.uniform(-1e-4,1e-4,(state_width,state_width))
+    
+        #forward
+    def forward(self,input_array):
+        self.times+=1
+        state=(np.dot(self.u, input_array)+np.dot(self.W,self.state_list[-1]))
+        element_wise_op(state,self.activator.forward)
+        self.state_list.append(state)
+
+        
+    #backword
+    def backward(self,sensitivity_array,activator):
+        #实现bptt算法
+        self.calc_delta(sensitivity_array,activator)
+        self.calc_gradient()
+    
+    def calc_delta(self,sensitivity_array,activator):
+        self.delta_list=[]#用来保存各个时刻的误差项
+        for i in range(self.times):
+            self.delta_list.append(np.zeros(self.state_width,1))#self.state_width……是不是有一个括号？
+            self.delta_list.append(sensitivity_array)
+            #迭代计算每个时刻的误差项
+            for k in range (self.times-1,0,-1):
+                self.calc_delta_k(k,activator)
+                
+    def calc_delta_k(self,k,activator):
+        """根据k+1时刻的delta计算k时刻的delta”“”
+        """
+        state=self.state_list[k+1].copy()
+        element_wise_op(self.state_list[k+1],activator.backward)
+        self.delta_list[k]=np.dot(np.dot(self.delta_list[k+1].T,self.W),np.diag(state[:,0])).T
+
+    def calc_gradient(self):
+        self.gradient_list=[]#保存各个时刻的权重梯度
+        for t in range(self.times +1):
+            self.gradient=reduce(lambda a,b:a+b,self.gradient_list,self.gradient_list[0])
+    
+            
+    def calc_gradient_t(self,t):
+        #计算每个时刻t权重的梯度
+        gradient=np.dot(self.delta_list[t]),self.state_list[t-1].T)
+        self.gradient_list[t]=gradient
+
+    def update(self):
+        #更新权重值
+        self.W=self.W-self.learning_rate*self.gradient
+        
