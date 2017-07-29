@@ -1,0 +1,5 @@
+import tensorflow as tf
+y=[0.1,0.1,0.1,0.1,0.1]
+a=tf.nn.softmax(y)
+sess=tf.Session()
+print("a的值为：",sess.run(a))
